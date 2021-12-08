@@ -3,8 +3,7 @@ System for realtime chat using socket.io
 
 ## 📷 Screenshots
 
-![1](https://user-images.githubusercontent.com/43748428/145289273-32fd9671-94c5-4120-ba0f-ba59560938f3.jpeg)
-
+<img alt="ScreenShot01" src="https://user-images.githubusercontent.com/43748428/145289273-32fd9671-94c5-4120-ba0f-ba59560938f3.jpeg" width="200px">
 
 This is a [Expo](https://expo.io/) project bootstrapped with [`expo init`](https://docs.expo.io/get-started/create-a-new-app/).
 
