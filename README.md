@@ -21,7 +21,7 @@ This project was developed with the following technologies:
 ## :information_source: Getting Started
 
 First, you need a server running in localhost, instruction for install in link.
-- [Server Backend Ckick Here](https://github.com/cesarzxk/node-socket-io-chat)
+- [Server Backend Click Here](https://github.com/cesarzxk/node-socket-io-chat)
 
 
 Second, you need install the dependencies:
