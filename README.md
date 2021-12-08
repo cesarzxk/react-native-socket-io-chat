@@ -52,5 +52,5 @@ To learn more about Expo, take a look at the following resources:
 You can check out [the Expo GitHub repository](https://github.com/expo/expo/) - your feedback and contributions are welcome!
 
 ## :memo: Licença
-This project is under the MIT license. See the [LICENSE](https://github.com/lukemorales/react-native-design-code/blob/master/LICENSE) for more information.
+This project is under the MIT license. See the [LICENSE](https://github.com/cesarzxk/react-native-socket-io-chat/blob/main/LICENSE) for more information.
 
