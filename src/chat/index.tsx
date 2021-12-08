@@ -5,7 +5,7 @@ import io from 'socket.io-client';
 import { styles } from './styles.native';
 
 // Replace this URL with your own, if you want to run the backend locally!
-const url = 'http://10.0.0.155:3333/';
+const url = 'https://cesarzxk-socketio-chat-server.herokuapp.com/';
 
 interface message{
   id:string, 
@@ -17,7 +17,7 @@ interface message{
 
 export default function Chat (){
   const [socket, setSocket] = useState(io(url));
-
+  
   const [messages, setMessages] = useState<message[]>([]) 
   const [code, setCode] = useState('')
   const [text, setText] = useState('')
