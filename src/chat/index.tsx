@@ -10,8 +10,10 @@ const url = 'https://cesarzxk-socketio-chat-server.herokuapp.com/';
 interface message{
   id:string, 
   message:string, 
-  date:{hours:number, seconds:number, milliseconds:number, minutes:number}
-  server:string
+  time:{hours:number, seconds:number, milliseconds:number, minutes:number},
+  date:{day:number, mouth:number, year:number},
+  server:string,
+  key:string,
 }
 
 
@@ -31,16 +33,24 @@ export default function Chat (){
       setText('')
       const date = new Date();
 
-      const newMessage = {
+      let newMessage = {
+        key:'',
         message:message, 
         id:id, 
         server:room,
         date:{
+          day:date.getDay(),
+          year:date.getFullYear(),
+          mouth:date.getMonth(),
+        },
+        time:{
           hours:date.getHours(),
           minutes: date.getMinutes(),
           seconds:date.getSeconds(),
           milliseconds:date.getMilliseconds(),
       }}
+
+      newMessage.key=CreateMessageKey(newMessage);
 
       setMessages([...messages, newMessage])
       socket.emit('chat', newMessage)
@@ -51,6 +61,12 @@ export default function Chat (){
       socket.emit('join', {code:code, id:socket.id})
       socket.once('statusJoin', log => setRoom(log.room));
       setId(socket.id);
+  }
+
+  function CreateMessageKey(msg:message){
+    const date = `${msg.date.day}/${msg.date.mouth}/${msg.date.year}`
+    const time = `${msg.time.hours}:${msg.time.minutes}:${msg.time.seconds}:${msg.time.milliseconds}`
+    return  `${msg.id};${date};${time}`
   }
 
   useEffect(()=>{
@@ -74,14 +90,21 @@ export default function Chat (){
           <ScrollView ref={ChatRef} onContentSizeChange={()=>{ChatRef.current?.scrollToEnd()}} style={styles.messageList}>
 
               {messages?.map((result)=>
-              <View style={[styles.message, (result.id != id)&& {borderBottomRightRadius:20, 
-                                                                borderBottomLeftRadius:0, 
-                                                                backgroundColor:'#fff',
-                                                                alignSelf:'flex-start',
-                                                                } ]}>
+              <View 
+              key={result.key}
+              style={[
+                styles.message, (result.id != id)&&
+                {
+                  borderBottomRightRadius:20, 
+                  borderBottomLeftRadius:0, 
+                  backgroundColor:'#fff',
+                  alignSelf:'flex-start',
+                }
+                ]}>
+                <Text>{}</Text>
                 <Text style={styles.messageUserId}>{result.id}</Text>
                 <Text>{result.message}</Text>
-                <Text style={styles.messageTimer}>{result.date.hours}:{result.date.minutes}</Text>
+                <Text style={styles.messageTimer}>{result.time.hours}:{result.time.minutes}</Text>
               </View>
               )}
 
