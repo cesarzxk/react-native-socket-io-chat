@@ -1,6 +1,6 @@
 import Expo from 'expo';
-import React, { useEffect, useState } from 'react';
-import { Button, SafeAreaView, ScrollView, StatusBar, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Button, SafeAreaView, ScrollView, StatusBar, Text, TextInput, View, ScrollViewProps} from 'react-native';
 import io from 'socket.io-client';
 import { styles } from './styles.native';
 
@@ -24,22 +24,27 @@ export default function Chat (){
   const [room, setRoom] = useState('')
   const [id, setId] = useState('')
 
+  let ChatRef = useRef<ScrollView>(null)
+
   function sentMessage(message:string){
-    const date = new Date();
+    if (code != ''){
+      setText('')
+      const date = new Date();
 
-    const newMessage = {
-      message:message, 
-      id:id, 
-      server:room,
-      date:{
-        hours:date.getHours(),
-        minutes: date.getMinutes(),
-        seconds:date.getSeconds(),
-        milliseconds:date.getMilliseconds(),
-    }}
+      const newMessage = {
+        message:message, 
+        id:id, 
+        server:room,
+        date:{
+          hours:date.getHours(),
+          minutes: date.getMinutes(),
+          seconds:date.getSeconds(),
+          milliseconds:date.getMilliseconds(),
+      }}
 
-    setMessages([...messages, newMessage])
-    socket.emit('chat', newMessage)
+      setMessages([...messages, newMessage])
+      socket.emit('chat', newMessage)
+    }
   }
 
   function Connect(){
@@ -66,9 +71,8 @@ export default function Chat (){
 
           <Text style={styles.status}>Conected: {room}</Text>
 
-          
+          <ScrollView ref={ChatRef} onContentSizeChange={()=>{ChatRef.current?.scrollToEnd()}} style={styles.messageList}>
 
-          <ScrollView onContentSizeChange={(action)=>{}} style={styles.messageList}>
               {messages?.map((result)=>
               <View style={[styles.message, (result.id != id)&& {borderBottomRightRadius:20, 
                                                                 borderBottomLeftRadius:0, 
@@ -84,8 +88,16 @@ export default function Chat (){
             
           </ScrollView>
           <View style={styles.code}>
-            <TextInput value={text} style={[styles.codeText, {textAlign:'left', paddingLeft:7}]} onChangeText={text => setText(text)}/>
-            <Button disabled={(room=='') || (text=='')} title='send' onPress={()=>{sentMessage(text); setText('')}}/>
+            <TextInput value={text} 
+            style={[styles.codeText, {textAlign:'left', paddingLeft:7}]} 
+            onChangeText={text => setText(text)}
+            onSubmitEditing={()=>{sentMessage(text); }}
+            />
+            
+            <Button 
+            disabled={(room=='') || (text=='')} 
+            title='send' 
+            onPress={()=>{sentMessage(text); setText('')}}/>
           </View>
       </SafeAreaView>
     );
