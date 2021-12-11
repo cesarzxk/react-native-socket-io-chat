@@ -1,6 +1,6 @@
 import Expo from 'expo';
-import React, { useEffect, useState } from 'react';
-import { Button, SafeAreaView, ScrollView, StatusBar, Text, TextInput, View } from 'react-native';
+import React, { useEffect, useRef, useState, memo} from 'react';
+import { Button, SafeAreaView, ScrollView, StatusBar, Text, TextInput, View, TouchableOpacity, Alert} from 'react-native';
 import io from 'socket.io-client';
 import { styles } from './styles.native';
 
@@ -10,36 +10,51 @@ const url = 'https://cesarzxk-socketio-chat-server.herokuapp.com/';
 interface message{
   id:string, 
   message:string, 
-  date:{hours:number, seconds:number, milliseconds:number, minutes:number}
-  server:string
+  time:{hours:number, seconds:number, milliseconds:number, minutes:number},
+  date:{day:number, mouth:number, year:number},
+  server:string,
+  key:string,
 }
 
 
-export default function Chat (){
+function Chat (){
   const [socket, setSocket] = useState(io(url));
-  
   const [messages, setMessages] = useState<message[]>([]) 
+
   const [code, setCode] = useState('')
   const [text, setText] = useState('')
   const [room, setRoom] = useState('')
   const [id, setId] = useState('')
 
+  let ChatRef = useRef<ScrollView>(null)
+
   function sentMessage(message:string){
-    const date = new Date();
+    if (code != ''){
+      setText('')
+      const date = new Date();
 
-    const newMessage = {
-      message:message, 
-      id:id, 
-      server:room,
-      date:{
-        hours:date.getHours(),
-        minutes: date.getMinutes(),
-        seconds:date.getSeconds(),
-        milliseconds:date.getMilliseconds(),
-    }}
+      let newMessage = {
+        key:'',
+        message:message, 
+        id:id, 
+        server:room,
+        date:{
+          day:date.getDay(),
+          year:date.getFullYear(),
+          mouth:date.getMonth(),
+        },
+        time:{
+          hours:date.getHours(),
+          minutes: date.getMinutes(),
+          seconds:date.getSeconds(),
+          milliseconds:date.getMilliseconds(),
+      }}
 
-    setMessages([...messages, newMessage])
-    socket.emit('chat', newMessage)
+      newMessage.key=CreateMessageKey(newMessage);
+
+      setMessages([...messages, newMessage])
+      socket.emit('chat', newMessage)
+    }
   }
 
   function Connect(){
@@ -48,12 +63,46 @@ export default function Chat (){
       setId(socket.id);
   }
 
+  function CreateMessageKey(msg:message){
+    const date = `${msg.date.day}/${msg.date.mouth}/${msg.date.year}`
+    const time = `${msg.time.hours}:${msg.time.minutes}:${msg.time.seconds}:${msg.time.milliseconds}`
+    return  `${msg.id};${date};${time}`
+  }
+
+  function deleteReceipedMessage(key:string){
+    const filteredMessages = messages.filter((mensage)=> mensage.key !== key)
+    setMessages(filteredMessages);
+  }
+
+  function deleteLocalMessage(key:string){
+    socket.emit('deleteMessage', {server:room, key:key});
+    deleteReceipedMessage(key)
+  }
+
+  function alertDelete(userId:string,key:string){
+    if(id==userId){
+      Alert.alert('Alerta','Deseja realmente apagar para todos?',[
+        {
+          text:'Sim',
+          onPress:()=>deleteLocalMessage(key)
+        },
+        {
+          text:'Não',
+          onPress:()=>{}
+        }
+      ])
+    }
+  }
+
   useEffect(()=>{
       socket.once('messages', (data)=>{
         setMessages([...messages, data])
       })
+
+      socket.once('deleteMessage',(key)=>{
+        deleteReceipedMessage(key)
+      })
   },[messages])
- 
 
     return (
       <SafeAreaView style={styles.container}>
@@ -65,29 +114,43 @@ export default function Chat (){
           </View>
 
           <Text style={styles.status}>Conected: {room}</Text>
-
           
-
-          <ScrollView onContentSizeChange={(action)=>{}} style={styles.messageList}>
+          <ScrollView ref={ChatRef} onContentSizeChange={()=>{ChatRef.current?.scrollToEnd()}} style={styles.messageList}>
               {messages?.map((result)=>
-              <View style={[styles.message, (result.id != id)&& {borderBottomRightRadius:20, 
-                                                                borderBottomLeftRadius:0, 
-                                                                backgroundColor:'#fff',
-                                                                alignSelf:'flex-start',
-                                                                } ]}>
-                <Text style={styles.messageUserId}>{result.id}</Text>
-                <Text>{result.message}</Text>
-                <Text style={styles.messageTimer}>{result.date.hours}:{result.date.minutes}</Text>
-              </View>
+              <TouchableOpacity onLongPress={()=>alertDelete(result.id, result.key)}>
+                <View 
+                key={result.key}
+                style={[
+                  styles.message, (result.id != id)&&
+                  {
+                    borderBottomRightRadius:20, 
+                    borderBottomLeftRadius:0, 
+                    backgroundColor:'#fff',
+                    alignSelf:'flex-start',
+                  }
+                  ]}>
+                  <Text style={styles.messageUserId}>{result.id}</Text>
+                  <Text>{result.message}</Text>
+                  <Text style={styles.messageTimer}>{result.time.hours}:{result.time.minutes}</Text>
+                </View>
+              </TouchableOpacity>
               )}
-
-            
           </ScrollView>
+        
           <View style={styles.code}>
-            <TextInput value={text} style={[styles.codeText, {textAlign:'left', paddingLeft:7}]} onChangeText={text => setText(text)}/>
-            <Button disabled={(room=='') || (text=='')} title='send' onPress={()=>{sentMessage(text); setText('')}}/>
+            <TextInput value={text} 
+            style={[styles.codeText, {textAlign:'left', paddingLeft:7}]} 
+            onChangeText={text => setText(text)}
+            onSubmitEditing={()=>{sentMessage(text); }}
+            />
+            
+            <Button 
+            disabled={(room=='') || (text=='')} 
+            title='send' 
+            onPress={()=>{sentMessage(text); setText('')}}/>
           </View>
       </SafeAreaView>
     );
 }
 
+export default memo(Chat);
