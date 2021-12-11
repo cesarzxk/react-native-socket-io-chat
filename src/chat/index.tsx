@@ -1,5 +1,5 @@
 import Expo from 'expo';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo} from 'react';
 import { Button, SafeAreaView, ScrollView, StatusBar, Text, TextInput, View, ScrollViewProps} from 'react-native';
 import io from 'socket.io-client';
 import { styles } from './styles.native';
@@ -17,10 +17,11 @@ interface message{
 }
 
 
-export default function Chat (){
+function Chat (){
   const [socket, setSocket] = useState(io(url));
   
   const [messages, setMessages] = useState<message[]>([]) 
+
   const [code, setCode] = useState('')
   const [text, setText] = useState('')
   const [room, setRoom] = useState('')
@@ -72,8 +73,11 @@ export default function Chat (){
   useEffect(()=>{
       socket.once('messages', (data)=>{
         setMessages([...messages, data])
+        return 0
       })
   },[messages])
+
+  
  
 
     return (
@@ -86,9 +90,8 @@ export default function Chat (){
           </View>
 
           <Text style={styles.status}>Conected: {room}</Text>
-
+          
           <ScrollView ref={ChatRef} onContentSizeChange={()=>{ChatRef.current?.scrollToEnd()}} style={styles.messageList}>
-
               {messages?.map((result)=>
               <View 
               key={result.key}
@@ -101,15 +104,13 @@ export default function Chat (){
                   alignSelf:'flex-start',
                 }
                 ]}>
-                <Text>{}</Text>
                 <Text style={styles.messageUserId}>{result.id}</Text>
                 <Text>{result.message}</Text>
                 <Text style={styles.messageTimer}>{result.time.hours}:{result.time.minutes}</Text>
               </View>
               )}
-
-            
           </ScrollView>
+        
           <View style={styles.code}>
             <TextInput value={text} 
             style={[styles.codeText, {textAlign:'left', paddingLeft:7}]} 
@@ -126,3 +127,4 @@ export default function Chat (){
     );
 }
 
+export default memo(Chat);
