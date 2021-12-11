@@ -1,6 +1,6 @@
 import Expo from 'expo';
 import React, { useEffect, useRef, useState, memo} from 'react';
-import { Button, SafeAreaView, ScrollView, StatusBar, Text, TextInput, View, ScrollViewProps} from 'react-native';
+import { Button, SafeAreaView, ScrollView, StatusBar, Text, TextInput, View, TouchableOpacity, Alert} from 'react-native';
 import io from 'socket.io-client';
 import { styles } from './styles.native';
 
@@ -19,7 +19,6 @@ interface message{
 
 function Chat (){
   const [socket, setSocket] = useState(io(url));
-  
   const [messages, setMessages] = useState<message[]>([]) 
 
   const [code, setCode] = useState('')
@@ -70,15 +69,40 @@ function Chat (){
     return  `${msg.id};${date};${time}`
   }
 
+  function deleteReceipedMessage(key:string){
+    const filteredMessages = messages.filter((mensage)=> mensage.key !== key)
+    setMessages(filteredMessages);
+  }
+
+  function deleteLocalMessage(key:string){
+    socket.emit('deleteMessage', {server:room, key:key});
+    deleteReceipedMessage(key)
+  }
+
+  function alertDelete(userId:string,key:string){
+    if(id==userId){
+      Alert.alert('Alerta','Deseja realmente apagar para todos?',[
+        {
+          text:'Sim',
+          onPress:()=>deleteLocalMessage(key)
+        },
+        {
+          text:'Não',
+          onPress:()=>{}
+        }
+      ])
+    }
+  }
+
   useEffect(()=>{
       socket.once('messages', (data)=>{
         setMessages([...messages, data])
-        return 0
+      })
+
+      socket.once('deleteMessage',(key)=>{
+        deleteReceipedMessage(key)
       })
   },[messages])
-
-  
- 
 
     return (
       <SafeAreaView style={styles.container}>
@@ -93,21 +117,23 @@ function Chat (){
           
           <ScrollView ref={ChatRef} onContentSizeChange={()=>{ChatRef.current?.scrollToEnd()}} style={styles.messageList}>
               {messages?.map((result)=>
-              <View 
-              key={result.key}
-              style={[
-                styles.message, (result.id != id)&&
-                {
-                  borderBottomRightRadius:20, 
-                  borderBottomLeftRadius:0, 
-                  backgroundColor:'#fff',
-                  alignSelf:'flex-start',
-                }
-                ]}>
-                <Text style={styles.messageUserId}>{result.id}</Text>
-                <Text>{result.message}</Text>
-                <Text style={styles.messageTimer}>{result.time.hours}:{result.time.minutes}</Text>
-              </View>
+              <TouchableOpacity onLongPress={()=>alertDelete(result.id, result.key)}>
+                <View 
+                key={result.key}
+                style={[
+                  styles.message, (result.id != id)&&
+                  {
+                    borderBottomRightRadius:20, 
+                    borderBottomLeftRadius:0, 
+                    backgroundColor:'#fff',
+                    alignSelf:'flex-start',
+                  }
+                  ]}>
+                  <Text style={styles.messageUserId}>{result.id}</Text>
+                  <Text>{result.message}</Text>
+                  <Text style={styles.messageTimer}>{result.time.hours}:{result.time.minutes}</Text>
+                </View>
+              </TouchableOpacity>
               )}
           </ScrollView>
         
