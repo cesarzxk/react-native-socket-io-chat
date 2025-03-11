@@ -1,7 +1,5 @@
-import Expo from "expo";
-import React, { useEffect, useRef, useState, memo } from "react";
+import React, { useEffect, useRef, useState, memo, useMemo } from "react";
 import {
-  Button,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -11,14 +9,14 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import io from "socket.io-client";
 import { styles } from "./styles.native";
 import { Ionicons } from "@expo/vector-icons";
+import { useRoute } from "@react-navigation/native";
+import { socket } from "../../../App";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Replace this URL with your own, if you want to run the backend locally!
-const url = "https://cesarzxk-socketio-chat-server.herokuapp.com/";
-const devUrl = "http://10.0.0.155:3333";
-const dev = true;
+
 
 interface message {
   id?: string;
@@ -35,14 +33,17 @@ interface message {
   alert?: string;
 }
 
-function Chat() {
-  const [socket, setSocket] = useState(io(dev ? devUrl : url));
-  const [messages, setMessages] = useState<message[]>([]);
 
-  const [code, setCode] = useState("");
+
+function Chat() {
+  const [messages, setMessages] = useState<message[]>([]);
+  const route = useRoute();
+  const { roomId, roomName, user } = route.params as any;
+
+  const [code, setCode] = useState(roomId);
   const [text, setText] = useState("");
   const [room, setRoom] = useState("");
-  const [id, setId] = useState("");
+  const [id, setId] = useState(user);
   const [users, setUsers] = useState("");
 
   let ChatRef = useRef<ScrollView>(null);
@@ -55,7 +56,7 @@ function Chat() {
       let newMessage = {
         key: "",
         message: message,
-        id: id,
+        id: user,
         server: room,
         date: {
           day: date.getDay(),
@@ -71,25 +72,33 @@ function Chat() {
       };
 
       newMessage.key = CreateMessageKey(newMessage);
-      console.log(newMessage);
 
       setMessages([...messages, newMessage]);
+      AsyncStorage?.setItem("chat" + roomId, JSON.stringify([...messages, newMessage]))
       socket.emit("chat", newMessage);
     }
   }
 
-  function Connect() {
+  async function Connect() {
+    const result = JSON.parse(await AsyncStorage?.getItem("chat" + roomId) || '[]')
+    setMessages(result)
+
     if (room == "") {
       socket.emit("join", { code: code, id: socket.id });
       socket.once("statusJoin", (log) => setRoom(log.room));
-      setId(socket.id);
     } else {
       socket.emit("removeUser", room);
       socket.emit("join", { code: code, id: socket.id });
       socket.once("statusJoin", (log) => setRoom(log.room));
-      setId(socket.id);
     }
+
+    console.log("Connectado:", socket.connected);
   }
+
+
+  useMemo(() => {
+    Connect()
+  }, [roomId])
 
   function CreateMessageKey(msg: message) {
     const date = `${msg.date?.day}/${msg.date?.mouth}/${msg.date?.year}`;
@@ -116,7 +125,7 @@ function Chat() {
         },
         {
           text: "Não",
-          onPress: () => {},
+          onPress: () => { },
         },
       ]);
     }
@@ -124,6 +133,7 @@ function Chat() {
 
   useEffect(() => {
     socket.once("messages", (data) => {
+      AsyncStorage?.setItem("chat" + roomId, JSON.stringify([...messages, data]))
       setMessages([...messages, data]);
     });
 
@@ -132,26 +142,31 @@ function Chat() {
     });
 
     socket.once("getUsers", (size) => {
-      console.log(size);
       setUsers(size);
     });
+
+    return () => {
+      socket.off("new_notification");
+    };
   }, [messages]);
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#fff" />
       <View style={styles.code}>
-        <Text> Room Code: </Text>
+
         <TextInput
-          value={code}
+          value={roomName}
+          defaultValue={roomName}
           style={styles.codeText}
           onChangeText={(text) => setCode(text)}
+          editable={false}
+
         />
-        <Button title="Enter" onPress={Connect} />
       </View>
 
       <Text style={styles.status}>
-        Conectado a: {room} Usuários: {users}
+        Usuários: {users}
       </Text>
 
       <ScrollView
@@ -161,8 +176,12 @@ function Chat() {
         }}
         style={styles.messageList}
       >
-        {messages?.map((result, index) =>
-          result.message ? (
+        {messages?.map((result, index) => {
+          const generateHexColor = () => {
+            return `#${Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0")}`;
+          };
+
+          return result.message ? (
             <TouchableOpacity
               key={result.key}
               onLongPress={() => alertDelete(result.id, result.key)}
@@ -176,10 +195,15 @@ function Chat() {
                     backgroundColor: "#fff",
                     alignSelf: "flex-start",
                   },
+                  {
+                    minWidth: 100
+                  }
                 ]}
               >
-                <Text style={styles.messageUserId}>{result.id}</Text>
-                <Text>{result.message}</Text>
+                <Text style={[styles.messageUserId, { color: generateHexColor() }]}>{result?.id}</Text>
+
+                <Text style={{ marginHorizontal: 4 }}>{result.message}</Text>
+
                 <Text style={styles.messageTimer}>
                   {result.time?.hours}:{result.time?.minutes}
                 </Text>
@@ -190,7 +214,7 @@ function Chat() {
               {result.alert}
             </Text>
           )
-        )}
+        })}
       </ScrollView>
 
       <View style={styles.TextArea}>
