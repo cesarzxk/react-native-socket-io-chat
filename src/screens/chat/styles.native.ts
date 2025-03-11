@@ -25,10 +25,11 @@ export const styles = StyleSheet.create({
     textAlign: "center",
     borderColor: "#ddd",
     borderRadius: 25,
+    color: "#000",
   },
   status: {
     width: "100%",
-    textAlign: "center",
+    textAlign: "left",
     textAlignVertical: "center",
   },
 
@@ -48,10 +49,11 @@ export const styles = StyleSheet.create({
     alignSelf: "flex-end",
   },
   messageUserId: {
-    alignSelf: "center",
-    fontSize: 12,
-    fontWeight: "bold",
-    marginBottom: 4,
+    alignSelf: "flex-start",
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 2,
+    marginHorizontal: 5,
   },
 
   messageTimer: {
